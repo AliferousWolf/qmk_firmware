@@ -22,6 +22,8 @@
 * 2: Get jump to work with luna. May have to do a custom communication to get bool states, that is the probelm, bool doesn't update/change on slave side.
 *    Boolean does update on master side just fine.
 * 3: Do you want no timeout on OLED? --> does this effect when keyboard is plugged in but computer is off
+* 4: ???
+* 5: Profit
 */
 
 
