@@ -16,20 +16,25 @@
 
  //Luna code provided by sbmueller and modded by AliferousWolf in collaboration with QMK discord
 
-//Test from laptop 1
-//Test from desktop 1
+ // Some of the code used for pet Jump is not working and could be removed if desired. A lot of stuff is commented out as I work on it.
+
+// Pimoroni Test 1
 
 /* To do list:
-* 1: Trackball operations: I2C communications research. Simple code samples. Etc.
+* 1: Trackball scroll and RGBW
 * 2: Get jump to work with luna. May have to do a custom communication to get bool states, that is the probelm, bool doesn't update/change on slave side.
 *    Boolean does update on master side just fine.
-* 3: Do you want no timeout on OLED? --> does this effect when keyboard is plugged in but computer is off
+* 3: Make RGB/Keyboard go to sleep mode when PC is off/sleeping
 * 4: ???
 * 5: Profit
 */
 
 
 #include QMK_KEYBOARD_H
+
+//#ifdef PIMORONI_TRACKBALL_ENABLE
+//#include "pimoroni_trackball.h"
+//#endif
 
 enum layers {
     _QWERTY = 0,
@@ -69,6 +74,7 @@ enum layers {
 /* timers */
 uint32_t anim_timer = 0;
 uint32_t anim_sleep = 0;
+uint16_t trackball_led_timer;
 
 /* current frame */
 uint8_t current_frame = 0;
@@ -263,6 +269,56 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  */
 
 
+/* // Below does not work. RGB doesn't turn on and scrolling doesn't work. Needs to be modified
+// could try using the trackball on the arduino practice to to make sure it works all proporly.
+
+#ifdef PIMORONI_TRACKBALL_ENABLE
+void pointing_device_task() {
+    report_mouse_t mouse_report = pointing_device_get_report();
+
+//    if (layer_state_is(_MOUSE)) {
+//       mouse_report.buttons = MOUSE_BUTTONS;
+ //   }
+    trackball_set_timed_rgbw(0,0,0,80); //Is there an option not enabled for the RGBW to work, or a value not defined?
+
+
+//    if (!is_keyboard_left() || !is_keyboard_master()) {
+//        process_mouse(&mouse_report);
+//    }
+
+    switch (get_highest_layer(layer_state)) {
+        case _QWERTY:
+            trackball_set_timed_rgbw(0,0,0,80);
+            break;
+        case _NAV:
+            trackball_set_rgbw(0,153,95,0);
+            break;
+        case _SYM:
+             trackball_set_rgbw(153,113,0,0);
+            break;
+        case _ADJUST:
+            trackball_set_rgbw(153,0,110,0);
+            break;
+        case _FUNCTION:
+            trackball_set_rgbw(0,73,153,0);
+            break;
+        default:
+            trackball_set_timed_rgbw(0,0,0,80);
+    }
+
+
+    if (layer_state_is(_NAV)) { // Probably need to actually have this value change something. Recommend trying the example scroll sample on qmk docs
+        trackball_set_scrolling(true);
+    } else {
+        trackball_set_scrolling(false);
+    }
+
+    pointing_device_set_report(mouse_report);
+    pointing_device_send();
+}
+#endif
+*/
+
 /* KEYBOARD PET START */
 
 /* logic */
@@ -387,7 +443,7 @@ static void render_luna(int LUNA_X, int LUNA_Y) {
         animate_luna();
     }
 
-    /* this fixes the screen on and off bug
+    /* this fixes the screen on and off bug (made it worse for me so I didn't use)
     if (current_wpm > 0) {
         oled_on();
         anim_sleep = timer_read32();
@@ -452,8 +508,8 @@ bool oled_task_user(void) {
         current_wpm   = get_current_wpm();
         oled_write_P(PSTR("WPM:"), false);
         oled_write(get_u8_str(get_current_wpm(), ' '), false);
-        oled_write(get_u8_str(isJumping, ' '), false);
-        oled_write(get_u8_str(showedJump, ' '), false);
+//        oled_write(get_u8_str(isJumping, ' '), false);  // used to see if the bool is actually changing on slave side
+//        oled_write(get_u8_str(showedJump, ' '), false); // same as above
         render_luna(8, 5); // Renders pet on slave side (8, 5 original)
     }
     return false;

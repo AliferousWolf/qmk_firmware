@@ -33,13 +33,36 @@
 #    define RGBLIGHT_LIMIT_VAL 150
 #endif
 
-// Lets you roll mod-tap keys
-#define IGNORE_MOD_TAP_INTERRUPT
 
-#define OLED_DISPLAY_128X64
+#define IGNORE_MOD_TAP_INTERRUPT // Lets you roll mod-tap keys
 
+
+#define OLED_DISPLAY_128X64 // Sets correct OLED size
+
+// Allows the use of WPM and mods/indicator on slave side
 #define SPLIT_WPM_ENABLE
 #define SPLIT_LED_STATE_ENABLE
 #define SPLIT_MODS_ENABLE
-//#define RGBLIGHT_SPLIT
-//#define SPLIT_POINTING_ENABLE
+
+// Defines the pimoroni trackball settings
+#define POINTING_DEVICE_RIGHT
+#define POINTING_DEVICE_COMBINED
+#define POINTING_DEVICE_INVERT_X_RIGHT
+#define POINTING_DEVICE_INVERT_Y_RIGHT
+#define TRACKBALL_LED_TIMEOUT 1000 //RGBW timeout in ms
+//#define POINTING_DEVICE_ROTATION_90
+//#define TRACKBALL_REVERSE_VSCROLL true //Vertical scroll
+//#define TRACKBALL_REVERSE_HSCROLL true //Horizontal scroll
+
+
+
+/* Used to set different values than default for trackball
+// #define PIMORONI_TRACKBALL_ADDRESS
+// #define PIMORONI_TRACKBALL_TIMEOUT
+// #define PIMORONI_TRACKBALL_SCALE
+// #define PIMORONI_TRACKBALL_DEBOUNCE_CYCLES
+// #define PIMORONI_TRACKBALL_ERROR_COUNT
+*/
+
+// #define RGBLIGHT_SPLIT
+#define SPLIT_POINTING_ENABLE
