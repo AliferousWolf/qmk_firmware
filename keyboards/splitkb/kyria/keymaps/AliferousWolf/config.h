@@ -49,7 +49,7 @@
 #define POINTING_DEVICE_COMBINED
 #define POINTING_DEVICE_INVERT_X_RIGHT
 #define POINTING_DEVICE_INVERT_Y_RIGHT
-#define TRACKBALL_LED_TIMEOUT 1000 //RGBW timeout in ms
+//#define TRACKBALL_LED_TIMEOUT 5000 //RGBW timeout in ms
 //#define POINTING_DEVICE_ROTATION_90
 //#define TRACKBALL_REVERSE_VSCROLL true //Vertical scroll
 //#define TRACKBALL_REVERSE_HSCROLL true //Horizontal scroll
@@ -57,7 +57,6 @@
 
 
 /* Used to set different values than default for trackball
-// #define PIMORONI_TRACKBALL_ADDRESS
 // #define PIMORONI_TRACKBALL_TIMEOUT
 // #define PIMORONI_TRACKBALL_SCALE
 // #define PIMORONI_TRACKBALL_DEBOUNCE_CYCLES

@@ -14,15 +14,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- //Luna code provided by sbmueller and modded by AliferousWolf in collaboration with QMK discord
+//Luna code provided by sbmueller and modded by AliferousWolf in collaboration with QMK discord
 
- // Some of the code used for pet Jump is not working and could be removed if desired. A lot of stuff is commented out as I work on it.
+// Some of the code used for pet Jump is not working and could be removed if desired. A lot of stuff is commented out as I work on it.
 
-// Pimoroni Test 1
+// Pimoroni trackball integration, success. Jan 13, 2023
 
-/* To do list:
-* 1: Trackball scroll and RGBW
-* 2: Get jump to work with luna. May have to do a custom communication to get bool states, that is the probelm, bool doesn't update/change on slave side.
+/* To do list: (nice to haves)
+* 1: Trackball RGBW timeout = OLED timeout. Also change colours as desired
+* 2: Get jump to work with luna. May have to do a custom communication to get bool states, that is the probelm. Bool doesn't update/change on slave side.
 *    Boolean does update on master side just fine.
 * 3: Make RGB/Keyboard go to sleep mode when PC is off/sleeping
 * 4: ???
@@ -32,7 +32,7 @@
 
 #include QMK_KEYBOARD_H
 
-//#ifdef PIMORONI_TRACKBALL_ENABLE
+//#ifdef PIMORONI_TRACKBALL_ENABLE  //seems to not be required
 //#include "pimoroni_trackball.h"
 //#endif
 
@@ -74,7 +74,7 @@ enum layers {
 /* timers */
 uint32_t anim_timer = 0;
 uint32_t anim_sleep = 0;
-uint16_t trackball_led_timer;
+//uint16_t trackball_led_timer;
 
 /* current frame */
 uint8_t current_frame = 0;
@@ -86,6 +86,9 @@ led_t led_usb_state;
 // You may need to set up a custom
 bool isJumping  = false;
 bool showedJump = true;
+
+// For scrolling trackball
+//static bool scrolling_mode = false;  // Used for the QMK recomended code for scrolling
 
 // Note: LAlt/Enter (ALT_ENT) is not the same thing as the keyboard shortcut Alt+Enter.
 // The notation `mod/tap` denotes a key that activates the modifier `mod` when held down, and
@@ -268,56 +271,52 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * DO NOT edit the rev1.c file; instead override the weakly defined default functions by your own.
  */
 
-
-/* // Below does not work. RGB doesn't turn on and scrolling doesn't work. Needs to be modified
-// could try using the trackball on the arduino practice to to make sure it works all proporly.
-
 #ifdef PIMORONI_TRACKBALL_ENABLE
 void pointing_device_task() {
     report_mouse_t mouse_report = pointing_device_get_report();
 
-//    if (layer_state_is(_MOUSE)) {
+    if (!is_keyboard_left() || !is_keyboard_master()) {
+        process_mouse(&mouse_report);
+    }
+
+//    if (layer_state_is(_MOUSE)) { // Currently not using this functionality
 //       mouse_report.buttons = MOUSE_BUTTONS;
- //   }
-    trackball_set_timed_rgbw(0,0,0,80); //Is there an option not enabled for the RGBW to work, or a value not defined?
+//   }
 
-
-//    if (!is_keyboard_left() || !is_keyboard_master()) {
-//        process_mouse(&mouse_report);
+//    if (layer_state_is(_NAV)) { // Probably need to actually have this value change something? Not working currently
+//        pimoroni_trackball_set_scrolling(true);
+//    } else {
+//        pimoroni_trackball_set_scrolling(false);
 //    }
-
-    switch (get_highest_layer(layer_state)) {
-        case _QWERTY:
-            trackball_set_timed_rgbw(0,0,0,80);
-            break;
-        case _NAV:
-            trackball_set_rgbw(0,153,95,0);
-            break;
-        case _SYM:
-             trackball_set_rgbw(153,113,0,0);
-            break;
-        case _ADJUST:
-            trackball_set_rgbw(153,0,110,0);
-            break;
-        case _FUNCTION:
-            trackball_set_rgbw(0,73,153,0);
-            break;
-        default:
-            trackball_set_timed_rgbw(0,0,0,80);
-    }
-
-
-    if (layer_state_is(_NAV)) { // Probably need to actually have this value change something. Recommend trying the example scroll sample on qmk docs
-        trackball_set_scrolling(true);
-    } else {
-        trackball_set_scrolling(false);
-    }
 
     pointing_device_set_report(mouse_report);
     pointing_device_send();
 }
 #endif
-*/
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    switch (get_highest_layer(state)) {
+        case _QWERTY:
+            pimoroni_trackball_set_rgbw(0,0,0,80);
+            break;
+        case _NAV:
+            pimoroni_trackball_set_rgbw(0,153,95,0);
+            break;
+        case _SYM:
+            pimoroni_trackball_set_rgbw(153,113,0,0);
+            break;
+        case _ADJUST:
+            pimoroni_trackball_set_rgbw(153,0,110,0);
+            break;
+        case _FUNCTION:
+            pimoroni_trackball_set_rgbw(0,73,153,0);
+            break;
+//        default:
+//            pimoroni_trackball_set_rgbw(0,0,0,80);
+    }
+    return state;
+}
+
 
 /* KEYBOARD PET START */
 
@@ -541,26 +540,14 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     switch (keycode) {
-
-/*      case KC_DOWN:
-            if (record->event.pressed) {
-                SEND_STRING("QMK is the best thing ever!");
-           // } else {
-                //return false;
-            }
-            break;
-*/
         case KC_SPC:
             if (record->event.pressed) {
                 isJumping  = true;
                 showedJump = false;
             } else {
                 isJumping = false;
-                //return true;
             }
             break;
-//        default:
-//            return true;
     };
     return true;
 }
