@@ -32,17 +32,24 @@
 #    define RGBLIGHT_VAL_STEP 8
 #    define RGBLIGHT_LIMIT_VAL 150
 #endif
+#define RGBLIGHT_SLEEP //RGB lighting will be switched off when the host goes to sleep
 
 
 #define IGNORE_MOD_TAP_INTERRUPT // Lets you roll mod-tap keys
 
 
 #define OLED_DISPLAY_128X64 // Sets correct OLED size
+#define OLED_TIMEOUT 0 //Set OLED timout. Set to 0 for always on
+
 
 // Allows the use of WPM and mods/indicator on slave side
 #define SPLIT_WPM_ENABLE
 #define SPLIT_LED_STATE_ENABLE
+#define SPLIT_LAYER_STATE_ENABLE
 #define SPLIT_MODS_ENABLE
+#define SPLIT_POINTING_ENABLE
+//#define POINTING_DEVICE_ENABLE
+
 
 // Defines the pimoroni trackball settings
 #define POINTING_DEVICE_RIGHT
@@ -50,9 +57,10 @@
 #define POINTING_DEVICE_INVERT_X_RIGHT
 #define POINTING_DEVICE_INVERT_Y_RIGHT
 //#define TRACKBALL_LED_TIMEOUT 5000 //RGBW timeout in ms
-//#define POINTING_DEVICE_ROTATION_90
+//#define POINTING_DEVICE_ROTATION_90 //Doesn't seem to work
 //#define TRACKBALL_REVERSE_VSCROLL true //Vertical scroll
 //#define TRACKBALL_REVERSE_HSCROLL true //Horizontal scroll
+#define MOUSE_EXTENDED_REPORT //should help smooth trackball - doesn't seem to do anything for me
 
 
 
@@ -64,4 +72,4 @@
 */
 
 // #define RGBLIGHT_SPLIT
-#define SPLIT_POINTING_ENABLE
+

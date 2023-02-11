@@ -18,23 +18,28 @@
 
 // Some of the code used for pet Jump is not working and could be removed if desired. A lot of stuff is commented out as I work on it.
 
+
+// Worked on getting keyboard to turn off during sleep. Working okay, but keyboard can't wake up pc. Feb 11, 2023
+// Updated some comments and tried to make trackball scroll work, unsuccessfully. Feb 10, 2023
 // Pimoroni trackball integration, success. Jan 13, 2023
 
+
 /* To do list: (nice to haves)
-* 1: Trackball RGBW timeout = OLED timeout. Also change colours as desired
-* 2: Get jump to work with luna. May have to do a custom communication to get bool states, that is the probelm. Bool doesn't update/change on slave side.
-*    Boolean does update on master side just fine.
-* 3: Make RGB/Keyboard go to sleep mode when PC is off/sleeping
-* 4: ???
-* 5: Profit
+* - Trackball scroll function
+* - Get jump to work with luna. May have to do a custom communication to get bool states, that is the problem. Bool doesn't update/change on slave side.
+*   Boolean does update on master side just fine, but still doesn't make luna jump
+* - Do I want to make a timout loop for stuff? custom sleep mode for keyboard lights etc.
+* - ???
+* - Profit
 */
+
+//Known bugs: - RP2040 doesn't wake up PC from R3 sleep...currently trying to look for a fix
+//            - Small screen flash every once and a while while oled sleeping when using oled sleep timer
 
 
 #include QMK_KEYBOARD_H
 
-//#ifdef PIMORONI_TRACKBALL_ENABLE  //seems to not be required
-//#include "pimoroni_trackball.h"
-//#endif
+#include "pimoroni_trackball.h"
 
 enum layers {
     _QWERTY = 0,
@@ -88,11 +93,36 @@ bool isJumping  = false;
 bool showedJump = true;
 
 // For scrolling trackball
-//static bool scrolling_mode = false;  // Used for the QMK recomended code for scrolling
+bool scrolling_mode = false;  // Used for the QMK recomended code for scrolling
 
 // Note: LAlt/Enter (ALT_ENT) is not the same thing as the keyboard shortcut Alt+Enter.
 // The notation `mod/tap` denotes a key that activates the modifier `mod` when held down, and
 // produces the key `tap` when tapped (i.e. pressed and released).
+
+
+
+
+//Startup
+void keyboard_post_init_user(void) { //settings run once after initialization
+    pimoroni_trackball_set_rgbw(0,0,0,80);
+    pointing_device_set_cpi(32000); // higher scroll speed
+}
+
+//Sleep
+void suspend_power_down_user(void) {
+    // code will run multiple times while keyboard is suspended
+    oled_off();
+    pimoroni_trackball_set_rgbw(0,0,0,0);
+}
+
+//Wakeup - still works when pc exits sleep, kyria just can't wake it up itself
+void suspend_wakeup_init_user(void) {
+    // code will run on keyboard wakeup
+    oled_on();
+    pimoroni_trackball_set_rgbw(0,0,0,80);
+}
+
+
 
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -102,9 +132,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * ,-------------------------------------------.                              ,-------------------------------------------.
  * |  Tab   |   Q  |   W  |   E  |   R  |   T  |                              |   Y  |   U  |   I  |   O  |   P  |  Bksp  |
  * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
- * |LSFT/Esc|   A  |   S  |   D  |   F  |   G  |                              |   H  |   J  |   K  |   L  | ;  : |Ctrl/' "|
+ * |LCTL/Esc|   A  |   S  |   D  |   F  |   G  |                              |   H  |   J  |   K  |   L  | ;  : |Ctrl/' "|
  * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
- * | LCTL   |   Z  |   X  |   C  |   V  |   B  | [ {  |      |  |      |  ] } |   N  |   M  | ,  < | . >  | /  ? | F-keys |
+ * |  LSFT  |   Z  |   X  |   C  |   V  |   B  | [ {  |      |  |      |  ] } |   N  |   M  | ,  < | . >  | /  ? | F-keys |
  * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
  *                        |PLYPAU| LGUI | LAlt/| Space| Nav  |  |      | SYM  |CapsLK| RGUI |Adjust|
  *                        |      |      | Enter|      |      |  |      |      |      |      |      |
@@ -112,8 +142,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  */
     [_QWERTY] = LAYOUT(
      KC_TAB  , KC_Q ,  KC_W   ,  KC_E  ,   KC_R ,   KC_T ,                                        KC_Y,   KC_U ,  KC_I ,   KC_O ,  KC_P , KC_BSPC,
-     LSFT_T(KC_ESC), KC_A ,  KC_S   ,  KC_D  ,   KC_F ,   KC_G ,                                        KC_H,   KC_J ,  KC_K ,   KC_L ,KC_SCLN,CTL_QUOT,
-     KC_LCTL, KC_Z ,  KC_X   ,  KC_C  ,   KC_V ,   KC_B , KC_LBRC, _______,     _______, KC_RBRC, KC_N,   KC_M ,KC_COMM, KC_DOT ,KC_SLSH, FKEYS  ,
+     LCTL_T(KC_ESC), KC_A ,  KC_S   ,  KC_D  ,   KC_F ,   KC_G ,                                        KC_H,   KC_J ,  KC_K ,   KC_L ,KC_SCLN,CTL_QUOT,
+     KC_LSFT, KC_Z ,  KC_X   ,  KC_C  ,   KC_V ,   KC_B , KC_LBRC, _______,     _______, KC_RBRC, KC_N,   KC_M ,KC_COMM, KC_DOT ,KC_SLSH, FKEYS  ,
                                 KC_MPLY, KC_LGUI, ALT_ENT, KC_SPC , NAV   ,     _______,   SYM ,KC_CAPS, KC_RGUI, ADJUST
     ),
 
@@ -271,52 +301,73 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * DO NOT edit the rev1.c file; instead override the weakly defined default functions by your own.
  */
 
-#ifdef PIMORONI_TRACKBALL_ENABLE
-void pointing_device_task() {
+
+//Trackball
+#ifdef PIMORONI_TRACKBALL_ENABLE //below only works with the def line
+void pointing_device_task() { //used to get mouse reports and use a pointing device
     report_mouse_t mouse_report = pointing_device_get_report();
 
     if (!is_keyboard_left() || !is_keyboard_master()) {
         process_mouse(&mouse_report);
     }
 
-//    if (layer_state_is(_MOUSE)) { // Currently not using this functionality
-//       mouse_report.buttons = MOUSE_BUTTONS;
-//   }
 
-//    if (layer_state_is(_NAV)) { // Probably need to actually have this value change something? Not working currently
-//        pimoroni_trackball_set_scrolling(true);
-//    } else {
-//        pimoroni_trackball_set_scrolling(false);
-//    }
+    if (layer_state_is(_NAV) || scrolling_mode == true) { //used both to make sure it was being called, but code doesn't seem to work
+        //pimoroni_
+        trackball_set_scrolling(true); //this setting did not work
+    } else {
+        //pimoroni_
+        trackball_set_scrolling(false);
+    }
 
     pointing_device_set_report(mouse_report);
     pointing_device_send();
 }
 #endif
 
-layer_state_t layer_state_set_user(layer_state_t state) {
+layer_state_t layer_state_set_user(layer_state_t state) { // Doesn't light up until at least 1 key is pressed?
     switch (get_highest_layer(state)) {
         case _QWERTY:
             pimoroni_trackball_set_rgbw(0,0,0,80);
+            if (scrolling_mode) {  // check if we were scrolling before and set disable if so
+                scrolling_mode = false;
+                pointing_device_set_cpi(32000); // higher scroll speed
+            }
             break;
         case _NAV:
-            pimoroni_trackball_set_rgbw(0,153,95,0);
+            pimoroni_trackball_set_rgbw(255,183,144,0);
+            scrolling_mode = true;
+            pointing_device_set_cpi(16000); //slower scroll speed
             break;
         case _SYM:
-            pimoroni_trackball_set_rgbw(153,113,0,0);
+            pimoroni_trackball_set_rgbw(167,204,241,0);
             break;
         case _ADJUST:
-            pimoroni_trackball_set_rgbw(153,0,110,0);
+            pimoroni_trackball_set_rgbw(146,96,235,0);
             break;
         case _FUNCTION:
-            pimoroni_trackball_set_rgbw(0,73,153,0);
+            pimoroni_trackball_set_rgbw(210,31,60,0);
             break;
-//        default:
-//            pimoroni_trackball_set_rgbw(0,0,0,80);
+        default:
+            if (scrolling_mode) {
+                scrolling_mode = false;
+            }
+            break;
     }
     return state;
 }
 
+/*
+report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) { // adding this didn't make the scroll function work
+    if (scrolling_mode) {
+        mouse_report.h = mouse_report.x;
+        mouse_report.v = mouse_report.y;
+        mouse_report.x = 0;
+        mouse_report.y = 0;
+    }
+    return mouse_report;
+}
+*/
 
 /* KEYBOARD PET START */
 
@@ -442,13 +493,17 @@ static void render_luna(int LUNA_X, int LUNA_Y) {
         animate_luna();
     }
 
-    /* this fixes the screen on and off bug (made it worse for me so I didn't use)
+    // this fixes the screen on and off bug (made it worse for me?)
+    // I think it made it worse because the led timers are different. Causes screen to flash like a strobe with the renders on it when woken up
+    // could try to add an "if" statement before the animation to check the state of the oled screen and then skip animating to see if that helps when sleep timer is on
+/*
     if (current_wpm > 0) {
         oled_on();
         anim_sleep = timer_read32();
     } else if (timer_elapsed32(anim_sleep) > OLED_TIMEOUT) {
         oled_off();
-    }*/
+    }
+*/
 }
 
 /* KEYBOARD PET END */
@@ -458,7 +513,7 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) { return OLED_ROTATION_
 
 bool oled_task_user(void) {
     if (is_keyboard_master()) {
-        // QMK Logo and version information
+                // QMK Logo and version information
         // clang-format off
         static const char PROGMEM qmk_logo[] = {
             0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,0x90,0x91,0x92,0x93,0x94,
@@ -467,6 +522,8 @@ bool oled_task_user(void) {
         // clang-format on
         oled_write_P(qmk_logo, false);
         oled_write_P(PSTR("Kyria rev1.0\n\n"), false);
+
+//        oled_write(get_u8_str(scrolling_mode, ' '),false); // testing scrolling mode
 
         // Host Keyboard Layer Status
         oled_write_P(PSTR("Layer: "), false);
@@ -502,6 +559,7 @@ bool oled_task_user(void) {
         oled_write_P(led_usb_state.num_lock    ? PSTR("NUMLCK ") : PSTR("       "), false);
         oled_write_P(led_usb_state.caps_lock   ? PSTR("CAPLCK ") : PSTR("       "), false);
         oled_write_P(led_usb_state.scroll_lock ? PSTR("SCRLCK ") : PSTR("       "), false);
+
     } else {
         led_usb_state = host_keyboard_led_state();
         current_wpm   = get_current_wpm();
@@ -509,7 +567,9 @@ bool oled_task_user(void) {
         oled_write(get_u8_str(get_current_wpm(), ' '), false);
 //        oled_write(get_u8_str(isJumping, ' '), false);  // used to see if the bool is actually changing on slave side
 //        oled_write(get_u8_str(showedJump, ' '), false); // same as above
+//        oled_write(get_u8_str(scrolling_mode, ' '),false); // testing scrolling mode
         render_luna(8, 5); // Renders pet on slave side (8, 5 original)
+
     }
     return false;
 }
