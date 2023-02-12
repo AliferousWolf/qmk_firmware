@@ -18,17 +18,16 @@
 
 // Some of the code used for pet Jump is not working and could be removed if desired. A lot of stuff is commented out as I work on it.
 
-
+// "finished" keyboard for now. Scrolling works, animations work, sleep works, everything is good enough. Feb 12, 2023
 // Worked on getting keyboard to turn off during sleep. Working okay, but keyboard can't wake up pc. Feb 11, 2023
 // Updated some comments and tried to make trackball scroll work, unsuccessfully. Feb 10, 2023
 // Pimoroni trackball integration, success. Jan 13, 2023
 
 
 /* To do list: (nice to haves)
-* - Trackball scroll function
-* - Get jump to work with luna. May have to do a custom communication to get bool states, that is the problem. Bool doesn't update/change on slave side.
-*   Boolean does update on master side just fine, but still doesn't make luna jump
+* - Do I want to make scroll slower?
 * - Do I want to make a timout loop for stuff? custom sleep mode for keyboard lights etc.
+* - Whenever bug with RP2040 and R3 computer sleep is fixed, fix that.
 * - ???
 * - Profit
 */
@@ -38,8 +37,6 @@
 
 
 #include QMK_KEYBOARD_H
-
-#include "pimoroni_trackball.h"
 
 enum layers {
     _QWERTY = 0,
@@ -79,7 +76,6 @@ enum layers {
 /* timers */
 uint32_t anim_timer = 0;
 uint32_t anim_sleep = 0;
-//uint16_t trackball_led_timer;
 
 /* current frame */
 uint8_t current_frame = 0;
@@ -88,24 +84,11 @@ uint8_t current_frame = 0;
 int   current_wpm = 0;
 led_t led_usb_state;
 
-// You may need to set up a custom
-bool isJumping  = false;
-bool showedJump = true;
-
-// For scrolling trackball
-bool scrolling_mode = false;  // Used for the QMK recomended code for scrolling
-
-// Note: LAlt/Enter (ALT_ENT) is not the same thing as the keyboard shortcut Alt+Enter.
-// The notation `mod/tap` denotes a key that activates the modifier `mod` when held down, and
-// produces the key `tap` when tapped (i.e. pressed and released).
-
-
-
 
 //Startup
 void keyboard_post_init_user(void) { //settings run once after initialization
     pimoroni_trackball_set_rgbw(0,0,0,80);
-    pointing_device_set_cpi(32000); // higher scroll speed
+    pimoroni_trackball_set_cpi(32000); // higher scroll speed
 }
 
 //Sleep
@@ -122,6 +105,10 @@ void suspend_wakeup_init_user(void) {
     pimoroni_trackball_set_rgbw(0,0,0,80);
 }
 
+
+// Note: LAlt/Enter (ALT_ENT) is not the same thing as the keyboard shortcut Alt+Enter.
+// The notation `mod/tap` denotes a key that activates the modifier `mod` when held down, and
+// produces the key `tap` when tapped (i.e. pressed and released).
 
 
 // clang-format off
@@ -295,49 +282,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 //     ),
 };
 
-/* The default OLED and rotary encoder code can be found at the bottom of qmk_firmware/keyboards/splitkb/kyria/rev1/rev1.c
- * These default settings can be overriden by your own settings in your keymap.c
- * For your convenience, here's a copy of those settings so that you can uncomment them if you wish to apply your own modifications.
- * DO NOT edit the rev1.c file; instead override the weakly defined default functions by your own.
- */
 
-
-//Trackball
-#ifdef PIMORONI_TRACKBALL_ENABLE //below only works with the def line
-void pointing_device_task() { //used to get mouse reports and use a pointing device
-    report_mouse_t mouse_report = pointing_device_get_report();
-
-    if (!is_keyboard_left() || !is_keyboard_master()) {
-        process_mouse(&mouse_report);
-    }
-
-
-    if (layer_state_is(_NAV) || scrolling_mode == true) { //used both to make sure it was being called, but code doesn't seem to work
-        //pimoroni_
-        trackball_set_scrolling(true); //this setting did not work
-    } else {
-        //pimoroni_
-        trackball_set_scrolling(false);
-    }
-
-    pointing_device_set_report(mouse_report);
-    pointing_device_send();
-}
-#endif
-
-layer_state_t layer_state_set_user(layer_state_t state) { // Doesn't light up until at least 1 key is pressed?
+//Trackball layers
+#ifdef POINTING_DEVICE_ENABLE
+static bool scrolling_mode = false;
+layer_state_t layer_state_set_user(layer_state_t state) {
     switch (get_highest_layer(state)) {
-        case _QWERTY:
-            pimoroni_trackball_set_rgbw(0,0,0,80);
-            if (scrolling_mode) {  // check if we were scrolling before and set disable if so
-                scrolling_mode = false;
-                pointing_device_set_cpi(32000); // higher scroll speed
-            }
-            break;
         case _NAV:
             pimoroni_trackball_set_rgbw(255,183,144,0);
             scrolling_mode = true;
-            pointing_device_set_cpi(16000); //slower scroll speed
+            pimoroni_trackball_set_cpi(3250); //3000 and less makes scrolling very jumpy. Could try to scale it elsewhere if less is desired
             break;
         case _SYM:
             pimoroni_trackball_set_rgbw(167,204,241,0);
@@ -349,25 +303,26 @@ layer_state_t layer_state_set_user(layer_state_t state) { // Doesn't light up un
             pimoroni_trackball_set_rgbw(210,31,60,0);
             break;
         default:
+            pimoroni_trackball_set_rgbw(0,0,0,80);
             if (scrolling_mode) {
                 scrolling_mode = false;
             }
-            break;
+            pimoroni_trackball_set_cpi(32000);
     }
     return state;
 }
 
-/*
+//Trackball movement
 report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) { // adding this didn't make the scroll function work
     if (scrolling_mode) {
         mouse_report.h = mouse_report.x;
-        mouse_report.v = mouse_report.y;
+        mouse_report.v = -mouse_report.y;
         mouse_report.x = 0;
         mouse_report.y = 0;
     }
     return mouse_report;
 }
-*/
+#endif
 
 /* KEYBOARD PET START */
 
@@ -449,23 +404,6 @@ static void render_luna(int LUNA_X, int LUNA_Y) {
     void animate_luna(void) {
         uint8_t mods = get_mods();
 
-        /* jump */
-        if (isJumping || !showedJump) {
-            /* clear */
-            oled_set_cursor(LUNA_X, LUNA_Y + 2);
-            oled_write("     ", false);
-
-            oled_set_cursor(LUNA_X, LUNA_Y - 1);
-
-            showedJump = true;
-        } else {
-            /* clear */
-            oled_set_cursor(LUNA_X, LUNA_Y - 1);
-            oled_write("     ", false);
-
-            oled_set_cursor(LUNA_X, LUNA_Y);
-        }
-
         /* switch frame */
         current_frame = (current_frame + 1) % 2;
 
@@ -492,8 +430,7 @@ static void render_luna(int LUNA_X, int LUNA_Y) {
         anim_timer = timer_read32();
         animate_luna();
     }
-
-    // this fixes the screen on and off bug (made it worse for me?)
+    // this is suppose to fix the screen on and off bug (but it made it worse for me?)
     // I think it made it worse because the led timers are different. Causes screen to flash like a strobe with the renders on it when woken up
     // could try to add an "if" statement before the animation to check the state of the oled screen and then skip animating to see if that helps when sleep timer is on
 /*
@@ -513,7 +450,7 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) { return OLED_ROTATION_
 
 bool oled_task_user(void) {
     if (is_keyboard_master()) {
-                // QMK Logo and version information
+        // QMK Logo and version information
         // clang-format off
         static const char PROGMEM qmk_logo[] = {
             0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,0x90,0x91,0x92,0x93,0x94,
@@ -523,7 +460,7 @@ bool oled_task_user(void) {
         oled_write_P(qmk_logo, false);
         oled_write_P(PSTR("Kyria rev1.0\n\n"), false);
 
-//        oled_write(get_u8_str(scrolling_mode, ' '),false); // testing scrolling mode
+        //oled_write(get_u8_str(scrolling_mode, ' '),false); // testing scrolling mode
 
         // Host Keyboard Layer Status
         oled_write_P(PSTR("Layer: "), false);
@@ -554,7 +491,6 @@ bool oled_task_user(void) {
         }
 
         // Write host Keyboard LED Status to OLEDs
-        //led_t
         led_usb_state = host_keyboard_led_state();
         oled_write_P(led_usb_state.num_lock    ? PSTR("NUMLCK ") : PSTR("       "), false);
         oled_write_P(led_usb_state.caps_lock   ? PSTR("CAPLCK ") : PSTR("       "), false);
@@ -565,10 +501,7 @@ bool oled_task_user(void) {
         current_wpm   = get_current_wpm();
         oled_write_P(PSTR("WPM:"), false);
         oled_write(get_u8_str(get_current_wpm(), ' '), false);
-//        oled_write(get_u8_str(isJumping, ' '), false);  // used to see if the bool is actually changing on slave side
-//        oled_write(get_u8_str(showedJump, ' '), false); // same as above
-//        oled_write(get_u8_str(scrolling_mode, ' '),false); // testing scrolling mode
-        render_luna(8, 5); // Renders pet on slave side (8, 5 original)
+        render_luna(8, 5); // Renders pet on slave side
 
     }
     return false;
@@ -597,17 +530,13 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 }
 #endif
 
+/*
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     switch (keycode) {
-        case KC_SPC:
-            if (record->event.pressed) {
-                isJumping  = true;
-                showedJump = false;
-            } else {
-                isJumping = false;
-            }
+        case (keycode goes here):
             break;
     };
     return true;
 }
+*/

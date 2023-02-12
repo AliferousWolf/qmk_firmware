@@ -42,21 +42,25 @@
 #define OLED_TIMEOUT 0 //Set OLED timout. Set to 0 for always on
 
 
-// Allows the use of WPM and mods/indicator on slave side
+// Allows the use of things on slave side
 #define SPLIT_WPM_ENABLE
 #define SPLIT_LED_STATE_ENABLE
 #define SPLIT_LAYER_STATE_ENABLE
 #define SPLIT_MODS_ENABLE
-#define SPLIT_POINTING_ENABLE
 //#define POINTING_DEVICE_ENABLE
 
 
 // Defines the pimoroni trackball settings
-#define POINTING_DEVICE_RIGHT
-#define POINTING_DEVICE_COMBINED
-#define POINTING_DEVICE_INVERT_X_RIGHT
-#define POINTING_DEVICE_INVERT_Y_RIGHT
-//#define TRACKBALL_LED_TIMEOUT 5000 //RGBW timeout in ms
+#define SPLIT_POINTING_ENABLE //allows use of a pointing device on split keyboard
+#define POINTING_DEVICE_RIGHT //pointing device is on right half of keyboard
+#define PIMORONI_TRACKBALL_INVERT_X
+#define PIMORONI_TRACKBALL_INVERT_Y
+//#define PIMORONI_TRACKBALL_ROTATE // rotates trackball 90 degrees
+
+//#define PIMORONI_TRACKBALL_ROTATE //should be able to rotate the trackball with this enabled
+//#define POINTING_DEVICE_COMBINED
+//#define POINTING_DEVICE_INVERT_X_RIGHT
+//#define POINTING_DEVICE_INVERT_Y_RIGHT
 //#define POINTING_DEVICE_ROTATION_90 //Doesn't seem to work
 //#define TRACKBALL_REVERSE_VSCROLL true //Vertical scroll
 //#define TRACKBALL_REVERSE_HSCROLL true //Horizontal scroll

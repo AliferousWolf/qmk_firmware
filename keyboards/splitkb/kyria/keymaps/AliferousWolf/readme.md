@@ -147,6 +147,11 @@ WPM is also displayed on the top left of the slave side OLED.
 ### Underglow
 The underglow LEDs are adjustable via the "adjust" layer to cycle through all the RGB colours and different animations.
 
+### Pimoroni trackball
+After I saw the pimoroni trackball I knew I had to try it. I don't know that it was a super good idea for my first build, but it worked out pretty good I think. It was very hard to get going at first...but now that it is all fited proporly and working, I can say it wasn't that bad. If I knew what I did now, it would have been a lot easier to impliment it. I definitly over complicated the process as it is straight forward.
+
+It is fun to use, but still won't replace my mouse. I haven't used it enough to say where it is best used. It doesn't do diagonals very well as it only has an x and y axis, however that doesn't seem to be an issue for my uses with the small trackball.
+
 ## Going further…
 
 This default keymap can be used as is, unchanged, as a daily driver for your Kyria but you're invited to treat your keymap like a bonsai. At the beginning, it's just like the default keymap but from time to time, you can tweak it a little. Cut a little key here, let another combo grow there. Slowly but surely it will be a unique keymap that will fit you like a glove.
